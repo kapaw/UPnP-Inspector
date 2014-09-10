@@ -301,6 +301,48 @@ class TreeWidget(object):
                     item = gtk.MenuItem("Refresh container")
                     item.connect("activate", lambda x: refresh(widget, row_path))
                     menu.append(item)
+                    
+                    def download_links(links,directory):
+                        import urllib, socket, os
+                        socket.setdefaulttimeout(15)
+                        
+                        for link in links:
+                            name,url = link.split(",")
+                            filepath = "{}/{}".format(directory,name)
+                            if not os.path.exists(filepath):
+                                urllib.urlretrieve(url,filepath)
+
+                    def download_files(treeview,path):
+                        expanded = treeview.row_expanded(path)
+                        store = treeview.get_model()
+                        iter = store.get_iter(row_path)
+                        child = store.iter_children(iter)
+                        links = []
+                        while child:
+                            title,object_id,upnp_class,url,didl = self.store.get(child,NAME_COLUMN,ID_COLUMN,UPNP_CLASS_COLUMN,SERVICE_COLUMN,DIDL_COLUMN)
+                            
+                            if("object.container" not in upnp_class):
+                                links.append(title+","+url)
+                            store.remove(child)
+                            child = store.iter_children(iter)
+                        self.browse(treeview,path,None,
+                                    starting_index=0,requested_count=0,force=True,expand=expanded)
+                        
+                        import os
+                        directory = os.getcwd()+"/upnp-cache/"+self.device.get_friendly_name()+"/"+self.store.get(iter,NAME_COLUMN)[0]
+                        if not os.path.exists(directory):
+                            os.makedirs(directory)
+                        
+                        import thread
+                        thread.start_new_thread(download_links,(links,directory))
+                        
+                    menu = gtk.Menu()
+                    item = gtk.MenuItem("refresh container")
+                    item2 = gtk.MenuItem("download files")
+                    item.connect("activate", lambda x: refresh(widget,row_path))
+                    item2.connect("activate", lambda x: download_files(widget,row_path))
+                    menu.append(item)
+                    menu.append(item2)
 
                 if upnp_class != 'root':
                     url, didl = self.store.get(iter, SERVICE_COLUMN, DIDL_COLUMN)
