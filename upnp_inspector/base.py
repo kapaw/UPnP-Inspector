@@ -75,6 +75,13 @@ class Inspector(log.Loggable):
         menu.append(self.show_log_item)
         self.show_log_item.connect("activate", self.show_log_widget, "view.log")
         #self.show_log_item.set_sensitive(False)
+        
+        self.browsable = False
+        self.filter_browsable_item = gtk.CheckMenuItem("Filter browsable")
+        self.filter_browsable_item.set_active(self.browsable)
+        menu.append(self.filter_browsable_item)
+        self.filter_browsable_item.connect("activate", self.filter_browsable_widget, "view.details")
+        
         view_menu = gtk.MenuItem("View")
         view_menu.set_submenu(menu)
         menu_bar.append(view_menu)
@@ -94,7 +101,7 @@ class Inspector(log.Loggable):
 
         vbox.pack_start(menu_bar, False, False, 2)
 
-        self.device_tree = DevicesWidget(self.coherence)
+        self.device_tree = DevicesWidget(self.coherence,self)
         self.device_tree.cb_item_left_click = self.show_details
         vbox.pack_start(self.device_tree.window, True, True, 0)
         window.add(vbox)
@@ -165,3 +172,9 @@ class Inspector(log.Loggable):
 
     def show_about_widget(self, w, hint):
         AboutWidget()
+        
+    def filter_browsable_widget(self,w,hint):
+        if w.get_active() == True:
+            self.browsable = True
+        else:
+            self.browsable = False

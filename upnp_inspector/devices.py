@@ -42,7 +42,8 @@ def device_type(object):
 class DevicesWidget(log.Loggable):
     logCategory = 'inspector'
 
-    def __init__(self, coherence):
+    def __init__(self, coherence, parent):
+        self.parent = parent
         self.coherence = coherence
 
         self.cb_item_dbl_click = None
@@ -419,7 +420,7 @@ class DevicesWidget(log.Loggable):
         d.addCallback(populate, out_entries)
         d.addErrback(fail)
 
-    def device_found(self, device=None, row=None):
+    def add_device(self, device=None, row=None):
         self.info(device.get_friendly_name(),
                   device.get_usn(),
                   device.get_device_type().split(':')[3].lower(),
@@ -463,6 +464,27 @@ class DevicesWidget(log.Loggable):
 
         for embedded_device in device.devices:
             self.device_found(embedded_device, row=item)
+    
+    def device_found(self, device=None, row=None):
+        if(self.parent.browsable):
+            service = device.get_service_by_type('ContentDirectory')
+            
+            def reply(response):
+                self.add_device(device,row)
+
+            def handle_error(response):
+                pass
+
+            
+            action = service.get_action('Browse')
+            d = action.call(ObjectID='0',BrowseFlag='BrowseMetadata',
+                                             StartingIndex=str(0),RequestedCount=str(0),
+                                             Filter='*',SortCriteria='')
+            d.addCallback(reply)
+            d.addErrback(handle_error)
+        else:
+            self.add_device(device,row)
+
 
     def device_removed(self, usn=None):
         self.info('device_removed %r', usn)
